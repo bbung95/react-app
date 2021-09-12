@@ -3,7 +3,8 @@ import Toc from "./components/Toc";
 import Subject from "./components/Subject";
 import ReadContent from "./components/ReadContent";
 import CreateContent from "./components/CreateContent";
-import Control from "./components/Control"
+import UpdateContent from "./components/UpdateContent";
+import Control from "./components/Control";
 import "./App.css";
 
 class App extends Component {
@@ -23,35 +24,78 @@ class App extends Component {
     };
   }
 
-  render() {
-    var _title, _desc , _article;
+  // 읽기 컨텐츠 함수
+  getReadContent() {
+    var i = 0;
+    while (i < this.state.contents.length) {
+      var data = this.state.contents[i];
+      if (data.id === this.state.selected_content_id) {
+        return data;
+      }
+      i++;
+    }
+  }
+
+  // mode 변경 함수
+  getContent() {
+    var _title, _desc, _article, _content;
     if (this.state.mode === "welcome") {
       _title = this.state.welcome.title;
       _desc = this.state.welcome.desc;
-      _article = <ReadContent title={_title} desc={_desc}></ReadContent>
+      _article = <ReadContent title={_title} desc={_desc}></ReadContent>;
     } else if (this.state.mode === "read") {
+      _content = this.getReadContent();
 
-      var i = 0;
-      while(i < this.state.contents.length){
-        var data = this.state.contents[i];
-        if(data.id === this.state.selected_content_id){
-          _title = data.title;
-          _desc = data.desc;
-          break;
-        }
-        i++
-      }
-      _article = <ReadContent title={_title} desc={_desc}></ReadContent>
-    }else if( this.state.mode === "create"){
-      _article = <CreateContent onSubmit={function(_title, _desc){
-       this.max_content_id = this.max_content_id+1;
-       let _content = this.state.contents.concat({id:this.max_content_id, title: _title, desc: _desc})
-       this.setState({
-         contents : _content
-       })
-      }.bind(this)}></CreateContent>
+      _article = (
+        <ReadContent title={_content.title} desc={_content.desc}></ReadContent>
+      );
+    } else if (this.state.mode === "create") {
+      _article = (
+        <CreateContent
+          onSubmit={function (_title, _desc) {
+            this.max_content_id = this.max_content_id + 1;
+            _content = this.state.contents.concat({
+              id: this.max_content_id,
+              title: _title,
+              desc: _desc,
+            });
+            this.setState({
+              contents: _content,
+              mode: "read",
+            });
+          }.bind(this)}
+        ></CreateContent>
+      );
+    } else if (this.state.mode === "update") {
+      _content = this.getReadContent();
+      _article = (
+        <UpdateContent
+          data={_content}
+          onSubmit={function (_id, _title, _desc) {
+            let _contents = Array.from(this.state.contents);
+
+            var i = 0;
+            while (i < _contents.length) {
+              if (_contents[i].id === _id) {
+                _contents[i] = { id: _id, title: _title, desc: _desc };
+                break;
+              }
+              i++;
+            }
+
+            this.setState({
+              contents: _contents,
+              mode: "read",
+            });
+          }.bind(this)}
+        ></UpdateContent>
+      );
     }
 
+    return _article;
+  }
+
+  render() {
     return (
       <div className="App">
         <Subject
@@ -63,21 +107,41 @@ class App extends Component {
             });
           }.bind(this)}
         ></Subject>
-        <Control onChangeMode={function(_mode){
-          this.setState({
-            mode: _mode
-          })
-        }.bind(this)}></Control>
+        <Control
+          onChangeMode={function (_mode) {
+            if (_mode === "delete") {
+              let _contents = Array.from(this.state.contents);
+              var i = 0;
+              while(i < _contents.length){
+                if(_contents[i].id === this.state.selected_content_id){
+                  _contents.splice(i,1);
+                  break;
+                }
+                i++;
+              }
+
+              this.setState({
+                contens : _contents,
+                mode: "welcome"
+              });
+
+            } else {
+              this.setState({
+                mode: _mode
+              });
+            }
+          }.bind(this)}
+        ></Control>
         <Toc
           onChangePage={function (id) {
             this.setState({
               mode: "read",
-              selected_content_id: Number(id)
-            })
+              selected_content_id: Number(id),
+            });
           }.bind(this)}
           data={this.state.contents}
         ></Toc>
-        {_article}
+        {this.getContent()}
       </div>
     );
   }
